@@ -1,64 +1,55 @@
-mod args;
-
-use std::path::PathBuf;
 use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
-pub struct Cli {
+pub struct Args {
     /// Size of the file in bytes
-    #[arg(short, long)]
-    pub count: Option<PathBuf>,
+    #[arg(short, long, action)]
+    pub count: bool,
 
     /// Number of lines in the file
-    #[arg(short, long)]
-    pub lines: Option<PathBuf>,
+    #[arg(short, long, action)]
+    pub lines: bool,
 
     /// Number of words in the file
-    #[arg(short, long)]
-    pub words: Option<PathBuf>,
+    #[arg(short, long, action)]
+    pub words: bool,
 
     /// Number of characters in the file
-    #[arg(short = 'm', long = "chars")]
-    pub chars: Option<PathBuf>,
+    #[arg(short = 'm', long = "chars", action)]
+    pub chars: bool,
 
     /// Path to file
-    #[arg(short, long)]
     pub path: PathBuf,
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let args = Args::parse();
 
-    // Byte count
-    if let Some(file) = cli.count {
-        match file.metadata() {
-            Ok(count) => println!("{} bytes", count.len()),
-            Err(e) => println!("{}", e),
-        }
-    }
+    match std::fs::read_to_string(&args.path) {
+        Ok(contents) => {
+            if !args.count && !args.lines && !args.words && !args.chars {
+                print!("{} ", contents.lines().count());
+                print!("{} ", contents.split_whitespace().count());
+                print!("{} ", contents.len());
+            }
 
-    // Line count
-    if let Some(file) = cli.lines {
-        match std::fs::read_to_string(file) {
-            Ok(contents) => println!("{} lines", contents.lines().count()),
-            Err(e) => println!("{}", e),
-        }
-    }
+            if args.count {
+                print!("{} ", contents.len());
+            }
+            if args.lines {
+                print!("{} ", contents.lines().count());
+            }
+            if args.words {
+                print!("{} ", contents.split_whitespace().count());
+            }
+            if args.chars {
+                print!("{} ", contents.chars().count());
+            }
 
-    // Word count
-    if let Some(file) = cli.words {
-        match std::fs::read_to_string(file) {
-            Ok(contents) => println!("{} words", contents.split_whitespace().count()),
-            Err(e) => println!("{}", e),
+            println!("{} ", args.path.display());
         }
-    }
-
-    // Character count
-    if let Some(file) = cli.chars {
-        match std::fs::read_to_string(file) {
-            Ok(contents) => println!("{} characters", contents.chars().count()),
-            Err(e) => println!("{}", e),
-        }
+        Err(e) => println!("{}", e),
     }
 }
