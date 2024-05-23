@@ -1,5 +1,8 @@
 use clap::Parser;
-use std::path::PathBuf;
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
@@ -21,35 +24,55 @@ pub struct Args {
     pub chars: bool,
 
     /// Path to file
-    pub path: PathBuf,
+    pub path: Option<PathBuf>,
 }
 
 fn main() {
     let args = Args::parse();
 
-    match std::fs::read_to_string(&args.path) {
-        Ok(contents) => {
-            if !args.count && !args.lines && !args.words && !args.chars {
-                print!("{} ", contents.lines().count());
-                print!("{} ", contents.split_whitespace().count());
-                print!("{} ", contents.len());
+    // check if a path argument was provided
+    match &args.path {
+        Some(path) => match std::fs::read_to_string(path) {
+            Ok(contents) => {
+                cw(&args, contents, Some(path));
             }
-
-            if args.count {
-                print!("{} ", contents.len());
+            Err(e) => println!("{}", e),
+        },
+        // if not, check stdin for contents
+        None => {
+            let mut contents = String::new();
+            match std::io::stdin().read_to_string(&mut contents) {
+                Ok(_) => {
+                    cw(&args, contents, None);
+                }
+                Err(e) => println!("{}", e),
             }
-            if args.lines {
-                print!("{} ", contents.lines().count());
-            }
-            if args.words {
-                print!("{} ", contents.split_whitespace().count());
-            }
-            if args.chars {
-                print!("{} ", contents.chars().count());
-            }
-
-            println!("{} ", args.path.display());
         }
-        Err(e) => println!("{}", e),
+    }
+}
+
+fn cw(args: &Args, contents: String, path: Option<&Path>) {
+    if !args.count && !args.lines && !args.words && !args.chars {
+        print!("{} ", contents.lines().count());
+        print!("{} ", contents.split_whitespace().count());
+        print!("{} ", contents.len());
+    }
+
+    if args.count {
+        print!("{} ", contents.len());
+    }
+    if args.lines {
+        print!("{} ", contents.lines().count());
+    }
+    if args.words {
+        print!("{} ", contents.split_whitespace().count());
+    }
+    if args.chars {
+        print!("{} ", contents.chars().count());
+    }
+
+    match path {
+        Some(path) => println!("{} ", path.display()),
+        None => println!(),
     }
 }
